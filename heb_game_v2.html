@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>עברית — Jeu bilingue</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Spectral:ital,wght@0,400;0,600;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+:root{--ink:#1a1209;--paper:#f5f0e8;--parchment:#ede7d5;--gold:#c8962a;--goldl:#e8b84b;--red:#8b2020;--blue:#1a3a5c;--teal:#1a5c4a;--muted:#7a6e5a;--border:#c8b89a;--sh:rgba(26,18,9,.15)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--parchment);color:var(--ink);font-family:'Spectral',Georgia,serif;min-height:100vh;overflow-x:hidden}
+.screen{display:none;min-height:100vh;position:relative}
+.screen.active{display:flex;flex-direction:column}
+
+/* HOME */
+#home{align-items:center;justify-content:center;padding:2rem;text-align:center;background:radial-gradient(ellipse at 50% 30%,#e8d9b8 0%,var(--parchment) 70%)}
+.logo{font-family:'Frank Ruhl Libre',serif;font-size:72px;font-weight:900;color:var(--gold);line-height:1;animation:fu .8s ease both}
+.sub{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;margin:.5rem 0 2.5rem;animation:fu .8s .15s ease both}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;max-width:700px;width:100%;animation:fu .8s .3s ease both}
+.tcard{background:var(--paper);border:1px solid var(--border);border-radius:4px;padding:1.75rem 1.5rem;cursor:pointer;transition:all .2s;text-align:left}
+.tcard:hover{transform:translateY(-3px);box-shadow:0 8px 24px var(--sh);border-color:var(--gold)}
+.tcard-num{font-family:'Space Mono',monospace;font-size:10px;color:var(--gold);letter-spacing:.15em;text-transform:uppercase;margin-bottom:.75rem}
+.tcard-heb{font-family:'Frank Ruhl Libre',serif;font-size:22px;font-weight:700;direction:rtl;text-align:right;margin-bottom:.5rem;line-height:1.3}
+.tcard-fr{font-size:13px;color:var(--muted);font-style:italic;line-height:1.5;margin-bottom:1rem}
+.ttags{display:flex;flex-wrap:wrap;gap:.35rem}
+.ttag{font-family:'Space Mono',monospace;font-size:9px;padding:2px 7px;border:1px solid var(--border);border-radius:2px;color:var(--muted);text-transform:uppercase}
+
+/* GAME */
+#game{flex-direction:column}
+.topbar{background:var(--ink);color:var(--paper);padding:.75rem 1.5rem;display:flex;align-items:center;gap:1rem;flex-shrink:0}
+.back-btn{font-family:'Space Mono',monospace;font-size:11px;cursor:pointer;background:none;border:none;color:var(--paper);letter-spacing:.1em;text-transform:uppercase;opacity:.7;transition:.15s}
+.back-btn:hover{opacity:1}
+.topbar-title{font-family:'Frank Ruhl Libre',serif;font-size:18px;font-weight:700;color:var(--goldl);flex:1;direction:rtl;text-align:right}
+.sbadge{font-family:'Space Mono',monospace;font-size:11px;background:var(--gold);color:var(--ink);padding:3px 10px;border-radius:2px;font-weight:700}
+.tabs{display:flex;background:var(--paper);border-bottom:2px solid var(--border);padding:0 1.5rem;flex-shrink:0;overflow-x:auto}
+.tab{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:.75rem 1rem;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--muted);transition:.15s;white-space:nowrap}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.panel{display:none;flex:1;overflow-y:auto;padding:1.5rem}
+.panel.active{display:block}
+
+/* TEXTE */
+.text-wrap{max-width:720px;margin:0 auto}
+.text-src{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem}
+.sblock{margin-bottom:1.75rem;border-left:3px solid var(--border);padding-left:1rem;transition:.2s}
+.sblock.playing{border-left-color:var(--gold)}
+.sheb{font-family:'Frank Ruhl Libre',serif;font-size:22px;font-weight:700;direction:rtl;text-align:right;line-height:1.6;cursor:pointer;transition:.15s}
+.sheb:hover{color:var(--gold)}
+.stransl{font-size:12px;color:var(--muted);font-style:italic;margin:.25rem 0}
+.sfr{font-size:15px;color:var(--blue);line-height:1.6;margin:.3rem 0}
+.snotes{font-size:13px;color:var(--teal);line-height:1.7;background:rgba(26,92,74,.06);padding:.5rem .75rem;border-radius:2px;margin-top:.5rem;display:none}
+.snotes.show{display:block}
+.row-btns{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.4rem;align-items:center}
+.pbtn{background:none;border:none;border-radius:50%;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .18s;padding:0;color:var(--muted)}
+.pbtn:hover{background:rgba(200,150,42,.12);color:var(--gold)}
+.pbtn.playing{color:var(--red);animation:pulse .7s ease infinite alternate}
+.pbtn svg{width:20px;height:20px;fill:currentColor;display:block}
+@keyframes pulse{from{transform:scale(1)}to{transform:scale(1.18)}}
+
+/* TUILES */
+.tiles-wrap{max-width:720px;margin:0 auto}
+.tinstr{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem}
+.sent-sel{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.25rem}
+.ssbtn{font-family:'Space Mono',monospace;font-size:9px;padding:4px 10px;border:1px solid var(--border);border-radius:2px;cursor:pointer;background:var(--paper);color:var(--muted);transition:.15s}
+.ssbtn:hover,.ssbtn.active{border-color:var(--gold);color:var(--gold);background:#fdf8ed}
+.tile-fr{font-size:14px;color:var(--muted);font-style:italic;margin-bottom:.5rem}
+.tile-tgt{min-height:60px;border:2px dashed var(--border);border-radius:4px;padding:.75rem;display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1rem;transition:.2s;direction:rtl}
+.tile-tgt.over{border-color:var(--gold);background:#fdf8ed}
+.tile-tgt.correct{border-color:var(--teal);background:rgba(26,92,74,.06)}
+.tile-tgt.wrong{border-color:var(--red);background:rgba(139,32,32,.06)}
+.tile-bank{display:flex;flex-wrap:wrap;gap:.5rem;min-height:50px;margin-bottom:1rem;direction:rtl}
+.tile{font-family:'Frank Ruhl Libre',serif;font-size:18px;font-weight:700;padding:.35rem .75rem;background:var(--paper);border:1.5px solid var(--border);border-radius:3px;cursor:grab;user-select:none;transition:all .15s;direction:rtl}
+.tile:hover{border-color:var(--gold);box-shadow:0 3px 8px var(--sh);transform:translateY(-1px)}
+.tile.in-tgt{border-color:var(--goldl);background:#fdf8ed}
+.tile-fb{font-family:'Space Mono',monospace;font-size:11px;padding:.5rem 1rem;border-radius:2px;margin-bottom:.75rem;text-transform:uppercase;letter-spacing:.08em;display:none}
+.tile-fb.ok{background:rgba(26,92,74,.1);color:var(--teal);display:block}
+.tile-fb.err{background:rgba(139,32,32,.1);color:var(--red);display:block}
+.act-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1.5rem}
+.abtn{font-family:'Space Mono',monospace;font-size:10px;padding:.45rem 1rem;border:1.5px solid var(--border);border-radius:2px;cursor:pointer;background:var(--paper);color:var(--ink);transition:.15s;text-transform:uppercase;letter-spacing:.08em}
+.abtn:hover{border-color:var(--gold);color:var(--gold)}
+.abtn.pri{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.abtn.pri:hover{background:var(--gold);border-color:var(--gold);color:var(--ink)}
+
+/* LEXIQUE */
+.lex-wrap{max-width:760px;margin:0 auto}
+.lex-search{width:100%;padding:.6rem 1rem;border:1.5px solid var(--border);border-radius:3px;font-family:'Spectral',serif;font-size:15px;background:var(--paper);color:var(--ink);margin-bottom:1rem}
+.lex-search:focus{outline:none;border-color:var(--gold)}
+.lex-filters{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.25rem}
+.lf{font-family:'Space Mono',monospace;font-size:9px;padding:3px 10px;border:1px solid var(--border);border-radius:2px;cursor:pointer;background:var(--paper);color:var(--muted);transition:.15s;text-transform:uppercase}
+.lf.active{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.lex-grid{display:grid;gap:.75rem}
+.lcard{background:var(--paper);border:1px solid var(--border);border-radius:4px;padding:1rem 1.25rem;cursor:pointer;transition:.15s}
+.lcard:hover{border-color:var(--gold);box-shadow:0 4px 12px var(--sh)}
+.lcard-top{display:flex;align-items:baseline;gap:1rem;flex-wrap:wrap}
+.lheb{font-family:'Frank Ruhl Libre',serif;font-size:26px;font-weight:700;direction:rtl}
+.ltrans{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);font-style:italic}
+.lpos{font-family:'Space Mono',monospace;font-size:9px;padding:2px 7px;border:1px solid var(--border);border-radius:2px;color:var(--muted);text-transform:uppercase;margin-left:auto}
+.lfr{font-size:15px;color:var(--blue);margin:.35rem 0 .25rem}
+.ldetail{display:none;margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border)}
+.ldetail.open{display:block}
+.lmorph{font-family:'Space Mono',monospace;font-size:11px;color:var(--teal);margin-bottom:.35rem;line-height:1.6}
+.lexpr{font-size:13px;color:var(--red);line-height:1.6}
+
+/* MORPHOLOGIE */
+.morph-wrap{max-width:760px;margin:0 auto}
+.msec{margin-bottom:2rem}
+.mtitle{font-family:'Frank Ruhl Libre',serif;font-size:20px;font-weight:700;color:var(--gold);border-bottom:1px solid var(--border);padding-bottom:.35rem;margin-bottom:.5rem}
+.msubt{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem}
+.mtable{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:.5rem}
+.mtable th{text-align:left;padding:6px 10px;background:var(--ink);color:var(--paper);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-weight:400}
+.mtable th:first-child{text-align:right;direction:rtl}
+.mtable td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.5}
+.mtable td:first-child{font-family:'Frank Ruhl Libre',serif;font-size:18px;font-weight:700;direction:rtl;text-align:right}
+.mtable td:nth-child(2){font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);font-style:italic}
+.mtable td:nth-child(3){color:var(--blue)}
+.mtable td:nth-child(4){font-size:12px;color:var(--teal)}
+.mtable tr:hover td{background:rgba(200,150,42,.05);cursor:pointer}
+.bb{display:inline-block;font-family:'Space Mono',monospace;font-size:8px;padding:1px 6px;border-radius:2px;margin-right:4px;text-transform:uppercase}
+.bkal{background:rgba(26,58,92,.15);color:var(--blue)}
+.bpiel{background:rgba(26,92,74,.15);color:var(--teal)}
+.bhifil{background:rgba(139,32,32,.15);color:var(--red)}
+.bnifal{background:rgba(200,150,42,.15);color:#8a6a1a}
+.bhitpael{background:rgba(80,40,120,.15);color:#5a2a8a}
+.bpual{background:rgba(120,80,20,.15);color:#6a4a10}
+.bhufal{background:rgba(60,100,60,.15);color:#2a5a2a}
+
+/* QUIZ */
+.quiz-wrap{max-width:660px;margin:0 auto}
+.qhdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:.5rem}
+.qprog{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.pbar{width:100%;height:4px;background:var(--border);border-radius:2px;margin-bottom:1.5rem;overflow:hidden}
+.pfill{height:100%;background:var(--gold);border-radius:2px;transition:width .4s}
+.qcard{background:var(--paper);border:1px solid var(--border);border-radius:4px;padding:1.75rem;margin-bottom:1rem}
+.qtype{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.75rem}
+.qqheb{font-family:'Frank Ruhl Libre',serif;font-size:28px;font-weight:700;direction:rtl;text-align:right;line-height:1.4;margin-bottom:.75rem}
+.qqfr{font-size:16px;color:var(--blue);line-height:1.5;margin-bottom:1rem}
+.qopts{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+.qopt{padding:.75rem 1rem;border:1.5px solid var(--border);border-radius:3px;cursor:pointer;font-family:'Spectral',serif;font-size:14px;background:var(--paper);color:var(--ink);transition:.15s;text-align:left;line-height:1.4}
+.qopt:hover:not(:disabled){border-color:var(--gold);background:#fdf8ed}
+.qopt.correct{border-color:var(--teal);background:rgba(26,92,74,.1);color:var(--teal)}
+.qopt.wrong{border-color:var(--red);background:rgba(139,32,32,.1);color:var(--red)}
+.qopt:disabled{cursor:default}
+.qfb{font-size:14px;line-height:1.6;margin-top:.75rem;padding:.6rem 1rem;border-radius:2px;display:none}
+.qfb.ok{background:rgba(26,92,74,.08);color:var(--teal);display:block}
+.qfb.err{background:rgba(139,32,32,.08);color:var(--red);display:block}
+.qnext{font-family:'Space Mono',monospace;font-size:10px;padding:.55rem 1.25rem;background:var(--ink);color:var(--paper);border:none;border-radius:2px;cursor:pointer;transition:.15s;text-transform:uppercase;letter-spacing:.1em;margin-top:.75rem;display:none}
+.qnext:hover{background:var(--gold);color:var(--ink)}
+.qfinal{text-align:center;padding:3rem 1rem}
+.qbig{font-family:'Frank Ruhl Libre',serif;font-size:72px;font-weight:900;color:var(--gold)}
+.qlabel{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:1.5rem}
+
+@keyframes fu{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.fi{animation:fu .35s ease both}
+hr.div{border:none;border-top:.5px solid var(--border);margin:2rem 0}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--parchment)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--gold)}
+</style>
+</head>
+<body>
+
+<div id="home" class="screen active">
+  <div class="logo">עברית</div>
+  <div class="sub">Hébreu · Ivrit · Hebrew</div>
+  <div class="cards">
+    <div class="tcard" id="card0">
+      <div class="tcard-num">Texte 01 · Chanson</div>
+      <div class="tcard-heb">מילים</div>
+      <div class="tcard-fr">Noa Kirel — Courage d'être soi, honte et liberté intérieure</div>
+      <div class="ttags"><span class="ttag">Chanson</span><span class="ttag">Poésie</span><span class="ttag">Subjonctif</span></div>
+    </div>
+    <div class="tcard" id="card1">
+      <div class="tcard-num">Texte 02 · Presse</div>
+      <div class="tcard-heb">גנץ על תקן דון קישוט</div>
+      <div class="tcard-fr">Nahum Barnea — Chronique politique, morphologie avancée</div>
+      <div class="ttags"><span class="ttag">Presse</span><span class="ttag">Politique</span><span class="ttag">Binyanim</span></div>
+    </div>
+  </div>
+</div>
+
+<div id="game" class="screen">
+  <div class="topbar">
+    <button class="back-btn" id="backbtn">← Menu</button>
+    <div class="topbar-title" id="topbar-title"></div>
+    <div class="sbadge" id="sbadge">0 pts</div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" data-tab="texte">Texte</div>
+    <div class="tab" data-tab="tuiles">Tuiles</div>
+    <div class="tab" data-tab="lexique">Lexique</div>
+    <div class="tab" data-tab="morphologie">Morphologie</div>
+    <div class="tab" data-tab="quiz">Quiz</div>
+  </div>
+  <div id="panel-texte" class="panel active"></div>
+  <div id="panel-tuiles" class="panel"></div>
+  <div id="panel-lexique" class="panel"></div>
+  <div id="panel-morphologie" class="panel"></div>
+  <div id="panel-quiz" class="panel"></div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────────
+var TEXTS = [
+{
+  id:0,
+  title:'מילים',
+  subtitle:'Noa Kirel',
+  sentences:[
+    {heb:'מילים',tr:'Milim',fr:'Des mots',
+     notes:'Le titre seul est un programme : parler avec des mots sur les mots qu\'elle n\'arrive pas à dire. Tension entre silence et expression.'},
+    {heb:'שיהא בי את האומץ להביא את כל כולי',tr:'she-yihé bi et ha-omets le-havi et kol kuli',fr:'Que j\'aie le courage d\'apporter tout ce que je suis',
+     notes:'שיהא : subjonctif optatif archaïque = vœu. בי = en moi. האומץ = le courage. כל כולי : redoublement intensif — totalité absolue de soi. Prière à soi-même.'},
+    {heb:'שיהא בנו האומץ ושנביא ושנביא',tr:'she-yihé banu ha-omets ve-she-navi ve-she-navi',fr:'Que nous ayons le courage et qu\'on apporte, qu\'on apporte',
+     notes:'בנו = en nous. Passage du singulier au pluriel — ouverture à l\'autre. Répétition ושנביא : effet incantatoire, formule qui se répète pour devenir vraie.'},
+    {heb:'אני עדיין מתביישת עדיין לא בטוחה עדיין מתביישת בין בני אדם',tr:'ani adayin mitbayeshet adayin lo betoukha adayin mitbayeshet beyn bné adam',fr:'Je ressens encore de la honte, pas encore sûre, encore de la honte, parmi les gens',
+     notes:'עדיין répété 3 fois = persistance. מתביישת (hitpa\'el) = forme réflexive, honte auto-infligée. בני אדם = "fils d\'Adam" = expression courante pour les êtres humains.'},
+    {heb:'בני אהבה',tr:'bné ahavá',fr:'Enfants d\'amour',
+     notes:'Apposé à בני אדם : les humains vus comme enfants d\'amour. Tension entre peur du jugement et reconnaissance de la bienveillance d\'autrui.'},
+    {heb:'תקראו לי משוגעת תקראו לי הזויה',tr:'tikrau li meshugaat tikrau li hazuyah',fr:'Traitez-moi de folle, traitez-moi de délirante',
+     notes:'Impératif pluriel adressé aux autres. Elle anticipe et neutralise le jugement d\'avance. הזויה : de הזיה (hallucination), argot israélien moderne.'},
+    {heb:'גם ככה אין לדעת מה כאן אמת מה אשליה',tr:'gam kakha eyn lada\'at ma kan emet ma ashliaya',fr:'De toute façon on ne peut pas savoir ce qui est vrai ici, ce qui est illusion',
+     notes:'גם ככה = expression figée "de toute façon". Si la réalité est incertaine, les étiquettes qu\'on lui colle n\'ont aucune valeur absolue. Philosophie de la perception subjective.'},
+    {heb:'עדיין מבקשת לשחרר שליטה אין גבול בשום שמים',tr:'adayin mevakeshet leshahrer shlita eyn gvul be-shum shamayim',fr:'Je cherche encore à lâcher le contrôle, pas de limite sous aucun ciel',
+     notes:'לשחרר שליטה = lâcher prise. שמים toujours pluriel en hébreu. אין גבול בשום שמים : formule d\'infini cosmique — sous aucun ciel il n\'y a de frontière.'},
+    {heb:'למי אני אהיה',tr:'lemi ani ehyé',fr:'Pour qui je serai',
+     notes:'אהיה = "je serai" ET le Nom divin (Exode 3:14 : je suis Celui qui suis). Utiliser ce mot pour soi = affirmation de souveraineté existentielle absolue.'},
+    {heb:'שיהא שיהא שיהא אהיה שיהא שיהא שיהא',tr:'she-yihé she-yihé she-yihé ehyé she-yihé she-yihé she-yihé',fr:'Qu\'il en soit — je serai — qu\'il en soit',
+     notes:'Séquence incantatoire pure. אהיה au cœur des שיהא : le vœu encadre et protège la promesse d\'existence. Structure : souhait → être → souhait.'}
+  ],
+  lexicon:[
+    {heb:'מילים',tr:'milim',pos:'Nom fém. pl.',fr:'des mots',morph:'Pl. de מִלָּה. Racine מ-ל-ל.',expr:''},
+    {heb:'שיהא',tr:'she-yihé',pos:'Conj.+Subj.',fr:'qu\'il y ait / puisse-t-il',morph:'שֶׁ (que) + יִהְיֶה subjonctif de être. Forme poétique/archaïque.',expr:'Vœu, désir, prière à soi-même'},
+    {heb:'האומץ',tr:'ha-omets',pos:'Nom masc. sg.',fr:'le courage',morph:'Racine א-מ-ץ. Forme nominale qotel définie.',expr:''},
+    {heb:'להביא',tr:'le-havi',pos:'Inf. hif\'il',fr:'apporter / amener',morph:'Hif\'il de ב-ו-א. Causatif : faire venir.',expr:''},
+    {heb:'כל כולי',tr:'kol kuli',pos:'Redoublement',fr:'tout ce que je suis',morph:'כֹּל (tout) + כּוּלִי (tout-moi). Double totalité.',expr:'Expression de complétude absolue de soi'},
+    {heb:'מתביישת',tr:'mitbayeshet',pos:'Verbe hitpa\'el',fr:'j\'ai honte',morph:'Hitpa\'el de ב-ו-שׁ. Réflexif : honte retournée sur soi.',expr:''},
+    {heb:'עדיין',tr:'adayin',pos:'Adverbe',fr:'encore / toujours',morph:'Adverbe de continuité temporelle. Indéclinable.',expr:'Triple répétition = persistance'},
+    {heb:'בני אדם',tr:'bné adam',pos:'Expr. figée',fr:'êtres humains',morph:'בְּנֵי pl. construit de בֵּן (fils) + אָדָם.',expr:'Litt. fils d\'Adam = humanité'},
+    {heb:'משוגעת',tr:'meshugaat',pos:'Adj. fém. sg.',fr:'folle',morph:'De שָׁגַע (devenir fou). Pa\'ul passif adjectival.',expr:''},
+    {heb:'הזויה',tr:'hazuyah',pos:'Adj. fém. sg.',fr:'délirante / hallucinée',morph:'De הָזָה (halluciner). Argot israélien contemporain.',expr:''},
+    {heb:'גם ככה',tr:'gam kakha',pos:'Expr. idiom.',fr:'de toute façon',morph:'גַּם (aussi) + כָּכָה (ainsi). Expression figée.',expr:'Neutralise un argument d\'avance'},
+    {heb:'אשליה',tr:'ashliaya',pos:'Nom fém. sg.',fr:'illusion / mirage',morph:'Racine שׁ-ל-י.',expr:''},
+    {heb:'שליטה',tr:'shlita',pos:'Nom fém. sg.',fr:'contrôle / maîtrise',morph:'De שָׁלַט (régner). Suffixe -ah nominalisant.',expr:'לשחרר שליטה = lâcher prise'},
+    {heb:'אהיה',tr:'ehyé',pos:'Verbe futur',fr:'je serai',morph:'Futur 1ère pers. sg. de היה. Double sens : futur + Nom divin (Ex 3:14).',expr:'Affirmation de souveraineté existentielle'}
+  ],
+  morphology:[
+    {cat:'Binyanim (formes verbales)',items:[
+      {heb:'להביא',tr:'le-havi',fr:'apporter',bn:'hifil',ex:'Causatif de ב-ו-א : faire venir = apporter'},
+      {heb:'מתביישת',tr:'mitbayeshet',fr:'j\'ai honte',bn:'hitpael',ex:'Réflexif de ב-ו-שׁ : se faire honte à soi-même'},
+      {heb:'לשחרר',tr:'leshahrer',fr:'libérer',bn:'piel',ex:'Intensif de שׁ-ח-ר : libérer complètement'},
+      {heb:'מבקשת',tr:'mevakeshet',fr:'je cherche',bn:'piel',ex:'Intensif de ב-ק-שׁ : chercher avec insistance'},
+      {heb:'שיהא',tr:'she-yihé',fr:'qu\'il soit',bn:'kal',ex:'Subjonctif optatif archaïque de היה'}
+    ]},
+    {cat:'Pronoms et prépositions fusionnées',items:[
+      {heb:'בי',tr:'bi',fr:'en moi',bn:'',ex:'Préposition ב + pronom 1ère sg.'},
+      {heb:'בנו',tr:'banu',fr:'en nous',bn:'',ex:'Préposition ב + pronom 1ère pl.'},
+      {heb:'כולי',tr:'kuli',fr:'tout moi',bn:'',ex:'כָּל + suffixe ִי (moi)'}
+    ]},
+    {cat:'Noms au pluriel remarquables',items:[
+      {heb:'מילים',tr:'milim',fr:'mots',bn:'',ex:'Pl. fém. irrégulier de מִלָּה'},
+      {heb:'שמים',tr:'shamayim',fr:'ciel / cieux',bn:'',ex:'Toujours pluriel en hébreu. Duel ou pl. de majesté.'},
+      {heb:'בני',tr:'bné',fr:'fils de / enfants de',bn:'',ex:'Pl. construit de בֵּן. Suivi d\'un nom = "les X de Y"'}
+    ]}
+  ],
+  quiz:[
+    {type:'Traduction He→Fr',qh:'שיהא בי את האומץ',qf:'',opts:['Que j\'aie le courage','J\'ai le courage','Aie le courage !','Avoir du courage'],ans:0,ex:'שיהא = subjonctif optatif (souhait). בי = en moi. האומץ = le courage.'},
+    {type:'Traduction Fr→He',qh:'',qf:'Je ressens encore de la honte',opts:['אני עדיין מתביישת','אני לא בטוחה','אני מבקשת לשחרר','תקראו לי משוגעת'],ans:0,ex:'עדיין = encore. מתביישת (hitpa\'el) = j\'ai honte, forme réflexive.'},
+    {type:'Sens d\'expression',qh:'גם ככה',qf:'',opts:['De toute façon','Aussi comme ça','C\'est aussi vrai','Donc ainsi'],ans:0,ex:'גם ככה est une expression figée signifiant "de toute façon / quoi qu\'il en soit".'},
+    {type:'Morphologie',qh:'מתביישת',qf:'Quel binyan ?',opts:['Hitpa\'el','Hif\'il','Nif\'al','Pa\'al'],ans:0,ex:'Hitpa\'el = forme réflexive. מִתְבַּיֶּשֶׁת : préfixe מִת + racine ב-ו-שׁ.'},
+    {type:'Traduction He→Fr',qh:'אהיה',qf:'',opts:['Je serai','Je suis','J\'étais','Être'],ans:0,ex:'אֶהְיֶה = futur 1ère pers. sg. de היה. Aussi le Nom divin (Ex 3:14).'},
+    {type:'Sens d\'expression',qh:'כל כולי',qf:'',opts:['Tout ce que je suis','Tous mes mots','Tout le monde','Rien du tout'],ans:0,ex:'Redoublement intensif : כֹּל + כּוּלִי = totalité absolue de soi.'},
+    {type:'Morphologie',qh:'להביא',qf:'Quel binyan ?',opts:['Hif\'il','Pa\'al','Hitpa\'el','Pi\'el'],ans:0,ex:'Hif\'il de ב-ו-א. Causatif : faire venir = apporter.'},
+    {type:'Traduction He→Fr',qh:'בני אדם',qf:'',opts:['Êtres humains','Fils de Dieu','Enfants d\'amour','Les seuls fils d\'Adam'],ans:0,ex:'בְּנֵי אָדָם = "fils d\'Adam" = expression courante pour les êtres humains.'}
+  ]
+},
+{
+  id:1,
+  title:'גנץ על תקן דון קישוט',
+  subtitle:'נחום ברנע · Yedioth Ahronoth · 04.05.2026',
+  sentences:[
+    {heb:'גנץ על תקן דון קישוט',tr:'Gantz al teken Don Kishote',fr:'Gantz dans le rôle de Don Quichotte',
+     notes:'על תקן : expression bureaucratique/militaire = "dans la fonction de". Ici ironique : Gantz occupe le poste de Don Quichotte, héros des combats absurdes contre des moulins à vent.'},
+    {heb:'לשירות שהוא רוצה לתת אין קונים',tr:'le-sherut she-hu rotse latet eyn konim',fr:'Pour le service qu\'il veut offrir, il n\'y a pas d\'acheteurs',
+     notes:'אין קונים : métaphore commerciale — "pas d\'acheteurs". Barnea désacralise la politique : offre sans demande. Le service politique de Gantz ne trouve pas preneur.'},
+    {heb:'הגיע הזמן לסגור את הבסטה',tr:'higia ha-zman lisgour et ha-basta',fr:'Il est temps de fermer la boutique',
+     notes:'לסגור את הבסטה : "fermer l\'étalage". בסטה vient de l\'arabe بسطة (étalage de marché). Expression populaire israélienne pour cesser son activité.'},
+    {heb:'סיפור כחול-לבן מסתיים בקול ענות חלושה',tr:'sipour Kakhol-Lavan mistayem be-kol anot khalusha',fr:'L\'histoire de Kakhol Lavan se termine dans un murmure',
+     notes:'קול ענות חלושה : allusion à Exode 32:18 — "voix d\'une réponse faible". Expression biblique pour une fin sans éclat, dans l\'indifférence générale.'},
+    {heb:'כמו חוט בלי קשר',tr:'ke-khut bli kesher',fr:'Comme un fil sans nœud',
+     notes:'Expression populaire : une chose qui se défait naturellement, sans résistance. Le fil non noué glisse et disparaît sans laisser de trace. Fin sans attachement.'},
+    {heb:'האביר בן דמות היגון',tr:'ha-avir ben damut ha-yagon',fr:'Le chevalier à la triste figure',
+     notes:'Traduction hébraïque de "El Caballero de la Triste Figura" (Don Quichotte, Cervantès). בן + nom = quelqu\'un caractérisé par X. Bן דמות היגון = fils de la figure du chagrin.'},
+    {heb:'גנץ נכנס לפוליטיקה בראש מורם; מגיע לו לצאת ממנה בראש מורם, אדון לגורלו',tr:'Gantz nikhnas le-politika be-rosh muram; magia lo latset mimena be-rosh muram, adon le-gorlo',fr:'Gantz est entré en politique la tête haute ; il mérite d\'en sortir la tête haute, maître de son destin',
+     notes:'בראש מורם : "tête levée" = avec dignité. מורם = passif de רוּם (élever). Symétrie rhétorique parfaite : entrée et sortie également dignes. אדון לגורלו = maître de son destin.'},
+    {heb:'הניצוץ בעיניו כבה: הוא ציפה לתשובה אחרת',tr:'ha-nitsots be-einav kava: hu tsipa le-tshuva akheret',fr:'L\'étincelle dans ses yeux s\'est éteinte : il attendait une autre réponse',
+     notes:'הניצוץ כבה : métaphore classique de la déception. כָּבָה = s\'éteindre (feu, flamme). Révèle la dépendance de Gantz au regard des autres — trait central de sa personnalité politique.'},
+    {heb:'מכונת רעל ביביסטית שלא ידעה גבולות',tr:'makhonot ra\'al bibiistit she-lo yada gvulot',fr:'Une machine à poison bibiiste qui ne connaissait pas de limites',
+     notes:'ביביסטית : néologisme — "Bibi" (Netanyahou) + suffixe -istic. מכונת רעל : machine à poison = campagne de dénigrement systématique, industrielle et sans visage humain.'},
+    {heb:'זה הזמן של ממשלות לאורך, לא לרוחב',tr:'ze ha-zman shel memshalot le-orekh, lo le-rokhav',fr:'C\'est le temps des gouvernements en longueur, pas en largeur',
+     notes:'Métaphore géométrique originale : אורך (longueur) = profondeur idéologique ; רוחב (largeur) = inclusion horizontale. Barnea oppose cohérence verticale et alliance horizontale.'},
+    {heb:'גנץ הוא מקרה קל: כל מה שהוא צריך זה להשלים עם מה שלא ניתן לשינוי. שישאל את חילי',tr:'Gantz hu mikre kal: kol ma she-hu tsarikh ze le-hashlim im ma she-lo nitan le-shinuy. She-yishal et Khili',fr:'Gantz est un cas facile : accepter ce qui ne peut pas changer. Qu\'il demande à Hili.',
+     notes:'להשלים עם = accepter, faire la paix avec. Hif\'il de שׁ-ל-מ (complet). Chute mordante : Tropper a compris avant le chef. Ironie cruelle finale.'}
+  ],
+  lexicon:[
+    {heb:'תקן',tr:'teken',pos:'Nom masc. sg.',fr:'poste / rôle / norme',morph:'Racine ת-ק-נ. Dans על תקן = "dans la fonction de".',expr:'על תקן : dans le rôle de (ironique ici)'},
+    {heb:'בסטה',tr:'basta',pos:'Nom fém. (emprunt)',fr:'étalage / boutique',morph:'Emprunt à l\'arabe بسطة (basta = étalage de marché).',expr:'לסגור את הבסטה = plier boutique'},
+    {heb:'קונים',tr:'konim',pos:'Nom / Part. pl.',fr:'acheteurs',morph:'Participe actif pa\'al pl. de קנה (acheter).',expr:'אין קונים = il n\'y a pas preneur'},
+    {heb:'פז"ם',tr:'pazam',pos:'Acronyme militaire',fr:'ancienneté / durée de service',morph:'פֶּרֶק זְמַן מִינִימָלִי = durée minimale de service.',expr:'Métaphore : carrière politique vue comme mandat militaire'},
+    {heb:'מסמר',tr:'mismar',pos:'Nom masc. sg.',fr:'clou',morph:'Racine ס-מ-ר.',expr:'המסמר הקטן שבגללו נפלה העיר = le petit clou à cause duquel la ville tomba'},
+    {heb:'ניצוץ',tr:'nitsots',pos:'Nom masc. sg.',fr:'étincelle',morph:'Racine נ-צ-צ. Intensif.',expr:'הניצוץ כבה = l\'étincelle s\'est éteinte (déception)'},
+    {heb:'מכונת רעל',tr:'makhonot raal',pos:'Expr. figée',fr:'machine à poison',morph:'מְכוֹנָה (machine) + רַעַל (poison).',expr:'Campagne de dénigrement systématique'},
+    {heb:'בראש מורם',tr:'be-rosh muram',pos:'Expr. figée',fr:'la tête haute / avec dignité',morph:'בְּ + רֹאשׁ (tête) + מוּרָם passif de רוּם (élever).',expr:'Entrer/sortir avec dignité'},
+    {heb:'שירת הברבור',tr:'shirat ha-barbur',pos:'Expr. figée',fr:'chant du cygne',morph:'שִׁירַת construit + הַבַּרְבּוּר (le cygne). Emprunt du français.',expr:'Dernière action avant la retraite définitive'},
+    {heb:'להשלים עם',tr:'le-hashlim im',pos:'Expr. verbale',fr:'accepter / se faire à',morph:'Hif\'il de שׁ-ל-מ (complet) + עִם (avec).',expr:'Faire la paix avec une réalité immuable'},
+    {heb:'לאורך / לרוחב',tr:'le-orekh / le-rokhav',pos:'Groupe prép.',fr:'en longueur / en largeur',morph:'אֹרֶךְ = longueur ; רֹחַב = largeur. Métaphore géométrique politique.',expr:'ממשלה לאורך = gouvernement idéologiquement cohérent'},
+    {heb:'ביביסטית',tr:'bibiistit',pos:'Adj. fém. néolog.',fr:'bibiiste',morph:'Bibi (surnom Netanyahou) + suffixe -ist + accord fém.',expr:'Néologisme politique, connotation péjorative'},
+    {heb:'פייק',tr:'feik',pos:'Nom (emprunt angl.)',fr:'faux / du flan',morph:'Emprunt direct de l\'anglais "fake".',expr:'Rupture de registre délibérée dans le texte'},
+    {heb:'הסיק מסקנות',tr:'hesik maskhanot',pos:'Expr. verbale',fr:'tirer les conclusions',morph:'Hif\'il de נ-ס-ק + pl. de מַסְקָנָה (conclusion).',expr:'Reconnaître une réalité et agir en conséquence'}
+  ],
+  morphology:[
+    {cat:'Binyanim (formes verbales)',items:[
+      {heb:'מסתיים',tr:'mistayem',fr:'se termine',bn:'hitpael',ex:'Réflexif de ס-י-מ : se terminer soi-même'},
+      {heb:'ניטש',tr:'nitash',fr:'fait rage',bn:'nifal',ex:'Nif\'al de נ-ט-שׁ : se mener (bataille)'},
+      {heb:'הוקדם',tr:'hukdam',fr:'a été avancé',bn:'hufal',ex:'Huf\'al (passif du hif\'il) de ק-ד-מ'},
+      {heb:'הבהירה',tr:'hivhira',fr:'a clarifié',bn:'hifil',ex:'Hif\'il de ב-ה-ר : illuminer, clarifier'},
+      {heb:'התייעץ',tr:'hitvaaets',fr:'a consulté',bn:'hitpael',ex:'Hitpa\'el de י-ע-ץ : se faire conseiller'},
+      {heb:'נדרש',tr:'nidrash',fr:'est exigé',bn:'nifal',ex:'Nif\'al passif de ד-ר-שׁ : être requis'},
+      {heb:'נכנס',tr:'nikhnas',fr:'est entré',bn:'nifal',ex:'Nif\'al de כ-נ-ס'}
+    ]},
+    {cat:'Constructions nominales (smichoút)',items:[
+      {heb:'איש אמונו',tr:'ish emuno',fr:'son homme de confiance',bn:'',ex:'Construit : איש (homme) + אֱמוּן (confiance) + suff. ו (son)'},
+      {heb:'שירת הברבור',tr:'shirat ha-barbur',fr:'chant du cygne',bn:'',ex:'Construit fém. שִׁירַת + article + nom'},
+      {heb:'מכונת רעל',tr:'makhonot raal',fr:'machine à poison',bn:'',ex:'Construit fém. מְכוֹנַת + nom non défini'},
+      {heb:'בן דמות היגון',tr:'ben damut ha-yagon',fr:'à la triste figure',bn:'',ex:'Litt. fils de la figure du chagrin'}
+    ]},
+    {cat:'Passifs remarquables',items:[
+      {heb:'מורם',tr:'muram',fr:'levé / hissé',bn:'hufal',ex:'Participe passif huf\'al de ר-ו-מ : élever'},
+      {heb:'סלולה',tr:'selula',fr:'pavée / aplanie',bn:'pual',ex:'Participe passif pu\'al de ס-ל-ל'},
+      {heb:'מקומם',tr:'mekomem',fr:'révoltant',bn:'hifil',ex:'Participe hif\'il de ק-ו-מ : dresser contre'},
+      {heb:'מושחת',tr:'mushkhat',fr:'corrompu',bn:'hufal',ex:'Participe passif huf\'al de שׁ-ח-ת'}
+    ]}
+  ],
+  quiz:[
+    {type:'Expression',qh:'לסגור את הבסטה',qf:'',opts:['Fermer la boutique','Fermer une fenêtre','Arrêter de parler','Ouvrir le marché'],ans:0,ex:'בסטה vient de l\'arabe. Expression populaire pour cesser son activité.'},
+    {type:'Morphologie',qh:'הוקדם',qf:'Quel binyan ?',opts:['Huf\'al','Nif\'al','Hif\'il','Hitpa\'el'],ans:0,ex:'Huf\'al = passif du hif\'il. Racine ק-ד-מ.'},
+    {type:'Traduction',qh:'בראש מורם',qf:'',opts:['La tête haute','La tête penchée','Au sommet du parti','Tête baissée'],ans:0,ex:'בְּרֹאשׁ מוּרָם : "tête levée". מורם = passif de רוּם (élever).'},
+    {type:'Sens',qh:'אין קונים',qf:'',opts:['Il n\'y a pas d\'acheteurs','Pas de vendeurs','Personne n\'achète','Aucun électeur'],ans:0,ex:'Métaphore commerciale : le service politique ne trouve pas preneur.'},
+    {type:'Expression',qh:'שירת הברבור',qf:'',opts:['Le chant du cygne','Une chanson d\'oiseau','Un discours final','La voix de la paix'],ans:0,ex:'Expression universelle : dernière action avant la retraite.'},
+    {type:'Morphologie',qh:'מסתיים',qf:'Quel binyan ?',opts:['Hitpa\'el','Pa\'al','Nif\'al','Pi\'el'],ans:0,ex:'Hitpa\'el réflexif de ס-י-מ : se terminer.'},
+    {type:'Traduction',qh:'להשלים עם',qf:'',opts:['Accepter / se faire à','Compléter avec','Finir ensemble','Se réconcilier seulement'],ans:0,ex:'Hif\'il de שׁ-ל-מ + עִם. Faire la paix avec une réalité immuable.'},
+    {type:'Culture',qh:'קול ענות חלושה',qf:'Référence ?',opts:['Exode / Bible hébraïque','Don Quichotte','Un poème de Bialik','Les Psaumes'],ans:0,ex:'Référence à Exode 32:18. Une fin sans éclat, dans l\'indifférence.'}
+  ]
+}
+];
+
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+var CT = null;         // current text
+var score = 0;
+var playingIdx = -1;
+
+// tiles
+var tileSent = 0;
+var tilesPlaced = [];
+var tilesBank = [];
+
+// quiz
+var qIdx = 0;
+var qAnswered = false;
+var qScore = 0;
+
+// lex
+var lexFilter = 'Tous';
+var lexSearch = '';
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function(){
+  document.getElementById('card0').addEventListener('click', function(){ loadText(0); });
+  document.getElementById('card1').addEventListener('click', function(){ loadText(1); });
+  document.getElementById('backbtn').addEventListener('click', goHome);
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.addEventListener('click', function(){ switchTab(t.dataset.tab); });
+  });});
+
+function goHome(){
+  stopAudio();
+  document.getElementById('home').classList.add('active');
+  document.getElementById('game').classList.remove('active');
+}
+
+function loadText(idx){
+  CT = TEXTS[idx];
+  score = 0; qIdx = 0; qScore = 0; qAnswered = false;
+  lexFilter = 'Tous'; lexSearch = '';
+  document.getElementById('topbar-title').textContent = CT.title;
+  document.getElementById('sbadge').textContent = '0 pts';
+  document.getElementById('home').classList.remove('active');
+  document.getElementById('game').classList.add('active');
+  switchTab('texte');
+  renderAll();
+}
+
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.classList.toggle('active', t.dataset.tab === name);
+  });
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+function addScore(n){
+  score += n;
+  document.getElementById('sbadge').textContent = score + ' pts';
+}
+
+function renderAll(){
+  renderTexte();
+  renderTuiles();
+  renderLexique();
+  renderMorphologie();
+  renderQuiz();
+}
+
+// ─────────────────────────────────────────────
+// AUDIO — Google TTS (he) avec fallback SpeechSynthesis
+// ─────────────────────────────────────────────
+var curAudio = null;
+var playingIdx = -1;
+
+// SVG haut-parleur (playing = onde animée)
+var SVG_SPEAKER = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>';
+var SVG_SPEAKER_ON = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77 0-4.28-2.99-7.86-7-8.77z"/></svg>';
+
+function speakHeb(text, idx){
+  // toggle off if same sentence playing
+  if(playingIdx === idx && curAudio){ stopAudio(); return; }
+  stopAudio();
+  playingIdx = (idx !== undefined && idx !== null) ? idx : -99;
+
+  // mark button playing
+  if(idx !== undefined && idx >= 0){
+    var sb = document.getElementById('sb-'+idx);
+    var pb = document.getElementById('pb-'+idx);
+    if(sb) sb.classList.add('playing');
+    if(pb){ pb.classList.add('playing'); pb.innerHTML = SVG_SPEAKER_ON; }
+  }
+
+  // Try Google TTS first (works without API key for short text)
+  var encoded = encodeURIComponent(text);
+  var url = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=he&client=tw-ob&q=' + encoded;
+  var audio = new Audio(url);
+  audio.crossOrigin = 'anonymous';
+  curAudio = audio;
+  audio.onended = function(){ stopAudio(); };
+  audio.onerror = function(){
+    // Fallback: SpeechSynthesis
+    curAudio = null;
+    var synth2 = window.speechSynthesis;
+    if(!synth2){ stopAudio(); return; }
+    var utt = new SpeechSynthesisUtterance(text);
+    utt.lang = 'he-IL';
+    utt.rate = 0.82;
+    var voices = synth2.getVoices();
+    for(var i=0;i<voices.length;i++){
+      if(voices[i].lang && voices[i].lang.indexOf('he')===0){ utt.voice=voices[i]; break; }
+    }
+    utt.onend = function(){ stopAudio(); };
+    utt.onerror = function(){ stopAudio(); };
+    synth2.speak(utt);
+  };
+  audio.play().catch(function(){
+    audio.onerror();
+  });
+}
+
+function stopAudio(){
+  if(curAudio){ try{ curAudio.pause(); curAudio.currentTime=0; }catch(e){} curAudio=null; }
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  playingIdx = -1;
+  document.querySelectorAll('.sblock').forEach(function(b){ b.classList.remove('playing'); });
+  document.querySelectorAll('.pbtn[id^="pb-"]').forEach(function(b){
+    b.classList.remove('playing'); b.innerHTML = SVG_SPEAKER;
+  });
+}
+
+// ─────────────────────────────────────────────
+// PANEL TEXTE
+// ─────────────────────────────────────────────
+function renderTexte(){
+  var p = document.getElementById('panel-texte');
+  var h = '<div class="text-wrap fi"><div class="text-src">' + CT.subtitle + '</div>';
+  CT.sentences.forEach(function(s, i){
+    h += '<div class="sblock" id="sb-'+i+'">';
+    h += '<div class="sheb" id="sheb-'+i+'">' + s.heb + '</div>';
+    h += '<div class="stransl">' + s.tr + '</div>';
+    h += '<div class="sfr">' + s.fr + '</div>';
+    h += '<div class="row-btns">';
+    h += '<button class="pbtn" id="pb-'+i+'" title="Écouter en hébreu">' + SVG_SPEAKER + '</button>';
+    h += '<button class="pbtn" data-notes="'+i+'" style="border-radius:3px;width:auto;padding:0 .6rem;font-family:\'Space Mono\',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.08em;border:1px solid var(--border)">+ Analyse</button>';
+    h += '</div>';
+    h += '<div class="snotes" id="notes-'+i+'">'+s.notes+'</div>';
+    h += '</div>';
+  });
+  h += '</div>';
+  p.innerHTML = h;
+  CT.sentences.forEach(function(s, i){
+    document.getElementById('sheb-'+i).addEventListener('click', function(){ speakHeb(s.heb, i); });
+    document.getElementById('pb-'+i).addEventListener('click', function(){ speakHeb(s.heb, i); });
+    p.querySelector('[data-notes="'+i+'"]').addEventListener('click', function(){
+      var n = document.getElementById('notes-'+i);
+      n.classList.toggle('show');
+      this.textContent = n.classList.contains('show') ? '− Analyse' : '+ Analyse';
+    });
+  });
+}
+
+// ─────────────────────────────────────────────
+// PANEL TUILES
+// ─────────────────────────────────────────────
+function renderTuiles(){
+  var p = document.getElementById('panel-tuiles');
+  var btns = CT.sentences.map(function(s,i){
+    return '<button class="ssbtn'+(i===0?' active':'')+'" data-si="'+i+'">'+(i+1)+'</button>';
+  }).join('');
+  p.innerHTML = '<div class="tiles-wrap fi">'
+    +'<div class="tinstr">Reconstituez la phrase · Glissez les tuiles ou double-cliquez</div>'
+    +'<div class="sent-sel" id="ts-sel">'+btns+'</div>'
+    +'<div class="tile-fr" id="ts-fr"></div>'
+    +'<div class="tile-tgt" id="ts-tgt"></div>'
+    +'<div class="tile-fb" id="ts-fb"></div>'
+    +'<div class="tile-bank" id="ts-bank"></div>'
+    +'<div class="act-row">'
+    +'<button class="abtn pri" id="ts-check">Vérifier</button>'
+    +'<button class="abtn" id="ts-reset">Réinitialiser</button>'
+    +'<button class="abtn" id="ts-hint">Indice</button>'
+    +'<button class="abtn" id="ts-audio" style="display:inline-flex;align-items:center;gap:.4rem"><svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>Écouter</button>'
+    +'</div></div>';
+
+  p.querySelectorAll('.ssbtn').forEach(function(b){
+    b.addEventListener('click', function(){ selectTileSent(parseInt(this.dataset.si)); });
+  });
+  document.getElementById('ts-check').addEventListener('click', checkTiles);
+  document.getElementById('ts-reset').addEventListener('click', function(){ selectTileSent(tileSent); });
+  document.getElementById('ts-hint').addEventListener('click', hintTile);
+  document.getElementById('ts-audio').addEventListener('click', function(){ speakHeb(CT.sentences[tileSent].heb, -99); });
+
+  var tgt = document.getElementById('ts-tgt');
+  tgt.addEventListener('dragover', function(e){ e.preventDefault(); this.classList.add('over'); });
+  tgt.addEventListener('dragleave', function(){ this.classList.remove('over'); });
+  tgt.addEventListener('drop', dropOnTarget);
+
+  selectTileSent(0);
+}
+
+function selectTileSent(i){
+  tileSent = i;
+  tilesPlaced = [];
+  document.querySelectorAll('.ssbtn').forEach(function(b){
+    b.classList.toggle('active', parseInt(b.dataset.si)===i);
+  });
+  var s = CT.sentences[i];
+  document.getElementById('ts-fr').textContent = s.fr;
+  tilesBank = shuffle(s.heb.split(' ').filter(function(w){ return w.length>0; }));
+  drawBank(); drawTarget();
+  hideTileFb();
+}
+
+function shuffle(arr){
+  var a = arr.slice();
+  for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; }
+  return a;
+}
+
+function drawBank(){
+  var b = document.getElementById('ts-bank');
+  b.innerHTML = '';
+  tilesBank.forEach(function(w, i){
+    var d = document.createElement('div');
+    d.className = 'tile';
+    d.textContent = w;
+    d.draggable = true;
+    d.dataset.from = 'bank';
+    d.dataset.i = i;
+    d.addEventListener('dragstart', function(e){
+      e.dataTransfer.setData('word', w);
+      e.dataTransfer.setData('from', 'bank');
+      e.dataTransfer.setData('idx', i);
+    });
+    d.addEventListener('dblclick', function(){
+      tilesBank.splice(i,1);
+      tilesPlaced.push(w);
+      drawBank(); drawTarget(); hideTileFb();
+    });
+    b.appendChild(d);
+  });
+}
+
+function drawTarget(){
+  var t = document.getElementById('ts-tgt');
+  t.classList.remove('correct','wrong','over');
+  t.innerHTML = '';
+  tilesPlaced.forEach(function(w, i){
+    var d = document.createElement('div');
+    d.className = 'tile in-tgt';
+    d.textContent = w;
+    d.draggable = true;
+    d.addEventListener('dblclick', function(){
+      tilesPlaced.splice(i,1);
+      tilesBank.push(w);
+      drawBank(); drawTarget(); hideTileFb();
+    });
+    t.appendChild(d);
+  });
+}
+
+function dropOnTarget(e){
+  e.preventDefault();
+  this.classList.remove('over');
+  var w = e.dataTransfer.getData('word');
+  var from = e.dataTransfer.getData('from');
+  var idx = parseInt(e.dataTransfer.getData('idx'));
+  if(from === 'bank'){
+    tilesBank.splice(idx,1);
+    tilesPlaced.push(w);
+    drawBank(); drawTarget(); hideTileFb();
+  }
+}
+
+function checkTiles(){
+  var correct = CT.sentences[tileSent].heb.split(' ').filter(function(w){ return w.length>0; });
+  var fb = document.getElementById('ts-fb');
+  var tgt = document.getElementById('ts-tgt');
+  if(tilesPlaced.length !== correct.length){
+    fb.className = 'tile-fb err'; fb.textContent = 'Toutes les tuiles ne sont pas placées.'; return;
+  }
+  var ok = tilesPlaced.every(function(w,i){ return w === correct[i]; });
+  if(ok){
+    fb.className = 'tile-fb ok'; fb.textContent = 'Bravo ! Phrase correcte.';
+    tgt.classList.add('correct'); addScore(10);
+  } else {
+    fb.className = 'tile-fb err'; fb.textContent = 'Ordre incorrect. Réessayez !';
+    tgt.classList.add('wrong');
+    setTimeout(function(){ tgt.classList.remove('wrong'); }, 800);
+  }
+}
+
+function hintTile(){
+  var correct = CT.sentences[tileSent].heb.split(' ').filter(function(w){ return w.length>0; });
+  var n = tilesPlaced.length;
+  if(n < correct.length){
+    var nw = correct[n];
+    var bi = tilesBank.indexOf(nw);
+    if(bi >= 0){ tilesBank.splice(bi,1); tilesPlaced.push(nw); drawBank(); drawTarget(); }
+  }
+}
+
+function hideTileFb(){
+  var fb = document.getElementById('ts-fb');
+  if(fb) fb.className = 'tile-fb';
+}
+
+// ─────────────────────────────────────────────
+// PANEL LEXIQUE
+// ─────────────────────────────────────────────
+function renderLexique(){
+  var p = document.getElementById('panel-lexique');
+  var filtered = getLexFiltered();
+  var poses = ['Tous'];
+  CT.lexicon.forEach(function(l){ var k = l.pos.split(' ')[0]; if(poses.indexOf(k)<0) poses.push(k); });
+  var fHtml = poses.map(function(f){
+    return '<div class="lf'+(f===lexFilter?' active':'')+'" data-f="'+f+'">'+f+'</div>';
+  }).join('');
+  var cards = filtered.map(function(l, i){
+    return '<div class="lcard" data-li="'+i+'">'
+      +'<div class="lcard-top"><span class="lheb">'+l.heb+'</span>'
+      +'<span class="ltrans">'+l.tr+'</span>'
+      +'<span class="lpos">'+l.pos+'</span></div>'
+      +'<div class="lfr">'+l.fr+'</div>'
+      +'<button class="pbtn" data-speak="'+i+'" title="Écouter" style="margin:.35rem 0">'
+      +'<svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;pointer-events:none"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>'
+      +'</button>'
+      +'<div class="ldetail" id="ld-'+i+'">'
+      +'<div class="lmorph">Morphologie : '+l.morph+'</div>'
+      +(l.expr?'<div class="lexpr">Expression : '+l.expr+'</div>':'')
+      +'</div></div>';
+  }).join('') || '<p style="color:var(--muted);font-style:italic">Aucun résultat.</p>';
+
+  p.innerHTML = '<div class="lex-wrap fi">'
+    +'<input class="lex-search" placeholder="Rechercher hébreu ou français…" id="lsearch" value="'+lexSearch+'"/>'
+    +'<div class="lex-filters" id="lfilters">'+fHtml+'</div>'
+    +'<div class="lex-grid" id="lgrid">'+cards+'</div>'
+    +'</div>';
+
+  document.getElementById('lsearch').addEventListener('input', function(){ lexSearch = this.value; renderLexique(); });
+  p.querySelectorAll('.lf').forEach(function(f){
+    f.addEventListener('click', function(){ lexFilter = this.dataset.f; renderLexique(); });
+  });
+  filtered.forEach(function(l, i){
+    var card = p.querySelector('[data-li="'+i+'"]');
+    if(card){
+      card.addEventListener('click', function(e){
+        if(e.target.dataset.speak !== undefined) return;
+        var d = document.getElementById('ld-'+i);
+        if(d) d.classList.toggle('open');
+      });
+    }
+    var sp = p.querySelector('[data-speak="'+i+'"]');
+    if(sp){ sp.addEventListener('click', function(e){ e.stopPropagation(); speakHeb(l.heb, -99); }); }
+  });
+}
+
+function getLexFiltered(){
+  return CT.lexicon.filter(function(l){
+    var mf = lexFilter==='Tous' || l.pos.indexOf(lexFilter)===0;
+    var ms = !lexSearch || l.heb.indexOf(lexSearch)>=0
+      || l.fr.toLowerCase().indexOf(lexSearch.toLowerCase())>=0
+      || l.tr.toLowerCase().indexOf(lexSearch.toLowerCase())>=0;
+    return mf && ms;
+  });
+}
+
+// ─────────────────────────────────────────────
+// PANEL MORPHOLOGIE
+// ─────────────────────────────────────────────
+var BN_LABELS = {kal:"Pa'al (qal)",piel:"Pi'el",hifil:"Hif'il",nifal:"Nif'al",hitpael:"Hitpa'el",pual:"Pu'al",hufal:"Huf'al"};
+
+function renderMorphologie(){
+  var p = document.getElementById('panel-morphologie');
+  var h = '<div class="morph-wrap fi">';
+  CT.morphology.forEach(function(sec){
+    h += '<div class="msec"><div class="mtitle">'+sec.cat+'</div>';
+    if(sec.cat.indexOf('Binyan')>=0) h += '<div class="msubt">Cliquez pour écouter</div>';
+    h += '<table class="mtable"><tr><th>Forme</th><th>Translittération</th><th>Français</th><th>Analyse</th></tr>';
+    sec.items.forEach(function(it){
+      var badge = it.bn ? '<span class="bb b'+it.bn+'">'+(BN_LABELS[it.bn]||it.bn)+'</span>' : '';
+      h += '<tr data-heb="'+it.heb+'"><td>'+it.heb+'</td><td>'+it.tr+'</td><td>'+it.fr+'</td><td>'+badge+it.ex+'</td></tr>';
+    });
+    h += '</table></div>';
+  });
+  // binyan reference table
+  h += '<div class="msec"><div class="mtitle">Les 7 binyanim — tableau de référence</div>'
+    +'<table class="mtable"><tr><th>Binyan</th><th>Nature</th><th>Sens</th><th>Exemple ici</th></tr>'
+    +'<tr><td>פָּעַל Pa\'al</td><td>qal — base</td><td>Forme simple active</td><td>אמר (dire), בא (venir)</td></tr>'
+    +'<tr><td>פִּעֵל Pi\'el</td><td>Intensif actif</td><td>Action intense / causative</td><td>שחרר, בקש</td></tr>'
+    +'<tr><td>הִפְעִיל Hif\'il</td><td>Causatif actif</td><td>Faire faire</td><td>הביא, הבהיר</td></tr>'
+    +'<tr><td>נִפְעַל Nif\'al</td><td>Passif / réflexif</td><td>Être fait / se faire</td><td>נכנס, ניטש</td></tr>'
+    +'<tr><td>הִתְפַּעֵל Hitpa\'el</td><td>Réflexif intensif</td><td>Se faire qqch à soi</td><td>מתביישת, מסתיים</td></tr>'
+    +'<tr><td>פֻּעַל Pu\'al</td><td>Passif du pi\'el</td><td>Être fait (intensif)</td><td>מוּרָם, סְלוּלָה</td></tr>'
+    +'<tr><td>הֻפְעַל Huf\'al</td><td>Passif du hif\'il</td><td>Être causé</td><td>הוּקְדַּם, מוּשְׁחָת</td></tr>'
+    +'</table></div>';
+  h += '</div>';
+  p.innerHTML = h;
+  p.querySelectorAll('.mtable tr[data-heb]').forEach(function(row){
+    var heb = row.dataset.heb;
+    if(heb) row.addEventListener('click', function(){ speakHeb(heb, -99); });
+  });
+}
+
+// ─────────────────────────────────────────────
+// PANEL QUIZ
+// ─────────────────────────────────────────────
+function renderQuiz(){
+  var p = document.getElementById('panel-quiz');
+  var qs = CT.quiz;
+  if(qIdx >= qs.length){
+    var pct = Math.round(qScore/qs.length*100);
+    p.innerHTML = '<div class="quiz-wrap fi qfinal">'
+      +'<div class="qbig">'+pct+'%</div>'
+      +'<div class="qlabel">'+qScore+'/'+qs.length+' bonnes réponses</div>'
+      +'<button class="abtn pri" id="qrestart">Recommencer</button>'
+      +'</div>';
+    document.getElementById('qrestart').addEventListener('click', function(){
+      qIdx=0; qScore=0; qAnswered=false; renderQuiz();
+    });
+    return;
+  }
+  var q = qs[qIdx];
+  var pct = Math.round(qIdx/qs.length*100);
+  var optsHtml = q.opts.map(function(o,i){
+    return '<button class="qopt" data-qi="'+i+'">'+o+'</button>';
+  }).join('');
+  p.innerHTML = '<div class="quiz-wrap fi">'
+    +'<div class="qhdr"><div class="qprog">Question '+(qIdx+1)+' / '+qs.length+'</div>'
+    +'<div class="sbadge" style="background:var(--teal)">'+qScore+' pts</div></div>'
+    +'<div class="pbar"><div class="pfill" style="width:'+pct+'%"></div></div>'
+    +'<div class="qcard">'
+    +'<div class="qtype">'+q.type+'</div>'
+    +(q.qh?'<div class="qqheb">'+q.qh+'</div>':'')
+    +(q.qf?'<div class="qqfr">'+q.qf+'</div>':'')
+    +'<div class="qopts">'+optsHtml+'</div>'
+    +'<div class="qfb" id="qfb"></div>'
+    +'<button class="qnext" id="qnext">Question suivante →</button>'
+    +'</div></div>';
+
+  if(q.qh){
+    var hebEl = p.querySelector('.qqheb');
+    if(hebEl) hebEl.addEventListener('click', function(){ speakHeb(q.qh, -99); hebEl.style.cursor='pointer'; });
+  }
+  p.querySelectorAll('.qopt').forEach(function(btn){
+    btn.addEventListener('click', function(){ answerQuiz(parseInt(this.dataset.qi), q); });
+  });
+  document.getElementById('qnext').addEventListener('click', function(){
+    qAnswered=false; qIdx++; renderQuiz();
+  });
+  qAnswered = false;
+}
+
+function answerQuiz(chosen, q){
+  if(qAnswered) return;
+  qAnswered = true;
+  var fb = document.getElementById('qfb');
+  document.querySelectorAll('.qopt').forEach(function(b){ b.disabled=true; });
+  var correct = document.querySelector('[data-qi="'+q.ans+'"]');
+  var chosen_el = document.querySelector('[data-qi="'+chosen+'"]');
+  if(chosen === q.ans){
+    if(chosen_el) chosen_el.classList.add('correct');
+    fb.className='qfb ok'; fb.textContent='Correct ! '+q.ex;
+    qScore++; addScore(15);
+  } else {
+    if(chosen_el) chosen_el.classList.add('wrong');
+    if(correct) correct.classList.add('correct');
+    fb.className='qfb err'; fb.textContent='Incorrect. '+q.ex;
+  }
+  document.getElementById('qnext').style.display='inline-block';
+}
+</script>
+</body>
+</html>
